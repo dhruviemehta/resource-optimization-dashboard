@@ -1,412 +1,714 @@
 {
-    "dashboard": {
-        "id": null,
-        "title": "Resource Optimization Dashboard",
-        "tags": [
-            "kubernetes",
-            "cost-optimization"
-        ],
-        "timezone": "browser",
-        "panels": [
+    "annotations": {
+        "list": [
             {
-                "id": 1,
-                "title": "🎯 Resource Status Overview",
-                "type": "piechart",
-                "gridPos": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
                 },
-                "targets": [
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) < 20 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "⚠️ Oversized (CPU < 20%)"
-                    },
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) > 80 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "🚨 Undersized (CPU > 80%)"
-                    },
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) >= 20 and (rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) <= 80 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "✅ Optimal (20-80%)"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "palette-classic"
-                        },
-                        "unit": "short"
-                    },
-                    "overrides": [
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "⚠️ Oversized (CPU < 20%)"
-                            },
-                            "properties": [
-                                {
-                                    "id": "color",
-                                    "value": {
-                                        "mode": "fixed",
-                                        "fixedColor": "orange"
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "🚨 Undersized (CPU > 80%)"
-                            },
-                            "properties": [
-                                {
-                                    "id": "color",
-                                    "value": {
-                                        "mode": "fixed",
-                                        "fixedColor": "red"
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "✅ Optimal (20-80%)"
-                            },
-                            "properties": [
-                                {
-                                    "id": "color",
-                                    "value": {
-                                        "mode": "fixed",
-                                        "fixedColor": "green"
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            },
-            {
-                "id": 2,
-                "title": "💰 Deployments Needing Attention",
-                "type": "table",
-                "gridPos": {
-                    "h": 12,
-                    "w": 24,
-                    "x": 0,
-                    "y": 8
-                },
-                "targets": [
-                    {
-                        "expr": "avg by (deployment) (label_replace((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"}, \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"))",
-                        "format": "table",
-                        "legendFormat": "CPU Usage %"
-                    },
-                    {
-                        "expr": "avg by (deployment) (label_replace(container_memory_working_set_bytes{container!=\"POD\",container!=\"\"} * 100 / kube_pod_container_resource_requests{resource=\"memory\"} * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"}, \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"))",
-                        "format": "table",
-                        "legendFormat": "Memory Usage %"
-                    },
-                    {
-                        "expr": "avg by (deployment) (label_replace(kube_pod_container_resource_requests{resource=\"cpu\"} * 1000 * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"}, \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"))",
-                        "format": "table",
-                        "legendFormat": "CPU Request (m)"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "merge"
-                    },
-                    {
-                        "id": "organize",
-                        "options": {
-                            "renameByName": {
-                                "Value #A": "CPU Usage %",
-                                "Value #B": "Memory Usage %",
-                                "Value #C": "CPU Request (m)"
-                            }
-                        }
-                    },
-                    {
-                        "id": "calculateField",
-                        "options": {
-                            "alias": "Status",
-                            "binary": {
-                                "left": "CPU Usage %",
-                                "operator": "<",
-                                "right": "20"
-                            }
-                        }
-                    }
-                ],
-                "fieldConfig": {
-                    "overrides": [
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "CPU Usage %"
-                            },
-                            "properties": [
-                                {
-                                    "id": "unit",
-                                    "value": "percent"
-                                },
-                                {
-                                    "id": "custom.displayMode",
-                                    "value": "color-background"
-                                },
-                                {
-                                    "id": "thresholds",
-                                    "value": {
-                                        "steps": [
-                                            {
-                                                "color": "orange",
-                                                "value": null
-                                            },
-                                            {
-                                                "color": "green",
-                                                "value": 20
-                                            },
-                                            {
-                                                "color": "red",
-                                                "value": 80
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "Memory Usage %"
-                            },
-                            "properties": [
-                                {
-                                    "id": "unit",
-                                    "value": "percent"
-                                },
-                                {
-                                    "id": "custom.displayMode",
-                                    "value": "color-background"
-                                },
-                                {
-                                    "id": "thresholds",
-                                    "value": {
-                                        "steps": [
-                                            {
-                                                "color": "orange",
-                                                "value": null
-                                            },
-                                            {
-                                                "color": "green",
-                                                "value": 20
-                                            },
-                                            {
-                                                "color": "red",
-                                                "value": 80
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "matcher": {
-                                "id": "byName",
-                                "options": "Status"
-                            },
-                            "properties": [
-                                {
-                                    "id": "mappings",
-                                    "value": [
-                                        {
-                                            "options": {
-                                                "0": {
-                                                    "text": "✅ Optimal",
-                                                    "color": "green"
-                                                },
-                                                "1": {
-                                                    "text": "⚠️ Oversized",
-                                                    "color": "orange"
-                                                }
-                                            },
-                                            "type": "value"
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            },
-            {
-                "id": 3,
-                "title": "📊 Resource Usage Trends",
-                "type": "timeseries",
-                "gridPos": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 12,
-                    "y": 0
-                },
-                "targets": [
-                    {
-                        "expr": "topk(5, avg by (deployment) (label_replace((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"}, \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\")))",
-                        "legendFormat": "{{deployment}}"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "unit": "percent",
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "yellow",
-                                    "value": 20
-                                },
-                                {
-                                    "color": "red",
-                                    "value": 80
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            {
-                "id": 4,
-                "title": "💸 Cost Savings Potential",
-                "type": "stat",
-                "gridPos": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 0,
-                    "y": 20
-                },
-                "targets": [
-                    {
-                        "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\"} * 0.024 * 720 * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"} * bool((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) < 20))",
-                        "legendFormat": "Monthly Savings"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "unit": "currencyUSD",
-                        "color": {
-                            "mode": "thresholds"
-                        },
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "yellow",
-                                    "value": 100
-                                },
-                                {
-                                    "color": "orange",
-                                    "value": 500
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            {
-                "id": 5,
-                "title": "⚠️ Oversized Count",
-                "type": "stat",
-                "gridPos": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 6,
-                    "y": 20
-                },
-                "targets": [
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) < 20 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "Oversized"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "fixed",
-                            "fixedColor": "orange"
-                        },
-                        "unit": "short"
-                    }
-                }
-            },
-            {
-                "id": 6,
-                "title": "🚨 Undersized Count",
-                "type": "stat",
-                "gridPos": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 20
-                },
-                "targets": [
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) > 80 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "Undersized"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "fixed",
-                            "fixedColor": "red"
-                        },
-                        "unit": "short"
-                    }
-                }
-            },
-            {
-                "id": 7,
-                "title": "✅ Optimal Count",
-                "type": "stat",
-                "gridPos": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 18,
-                    "y": 20
-                },
-                "targets": [
-                    {
-                        "expr": "count((rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) >= 20 and (rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]) * 100) / (kube_pod_container_resource_requests{resource=\"cpu\"} * 1000) <= 80 and on(pod) kube_pod_info{created_by_kind=\"ReplicaSet\"})",
-                        "legendFormat": "Optimal"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "fixed",
-                            "fixedColor": "green"
-                        },
-                        "unit": "short"
-                    }
-                }
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
             }
-        ],
-        "time": {
-            "from": "now-1h",
-            "to": "now"
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 28,
+    "links": [],
+    "panels": [
+        {
+            "datasource": {
+                "type": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        }
+                    },
+                    "mappings": [],
+                    "unit": "short"
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "⚠️ Oversized (CPU < 20%"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "orange",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "🚨 Undersized (CPU > 80%)"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "red",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "✅ Optimal (20-80%)"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "green",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 0
+            },
+            "id": 1,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "pieType": "pie",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"}\n  ) * 100 < 20\n) or vector(0)",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "⚠️ Oversized (CPU < 20%",
+                    "range": false,
+                    "refId": "A"
+                },
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"}\n  ) * 100 > 80\n) or vector(0)",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "🚨 Undersized (CPU > 80%)",
+                    "range": false,
+                    "refId": "B"
+                },
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"} > 0\n  ) * 100 >= 20\n  and\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"} > 0\n  ) * 100 <= 80\n) or vector(0)",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "✅ Optimal (20-80%)",
+                    "range": false,
+                    "refId": "C"
+                }
+            ],
+            "title": "🎯 Resource Status Overview",
+            "type": "piechart"
         },
-        "refresh": "30s",
-        "schemaVersion": 38,
-        "version": 1,
-        "uid": "resource-optimization-minimal"
-    }
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "aem10zgj3nj7kf"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 20
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 0
+            },
+            "id": 3,
+            "interval": "1m",
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "topk(5,\n  avg by (namespace, deployment) (\n    label_replace(\n      (\n        rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[$__rate_interval])\n        / on(namespace, pod, container)\n          kube_pod_container_resource_requests{resource=\"cpu\"}\n      )\n      * on(namespace, pod) group_left(created_by_name)\n        kube_pod_info{created_by_kind=\"ReplicaSet\"},\n      \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n    )\n  )\n)",
+                    "legendFormat": "{{deployment}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "📊 Resource Usage Trends",
+            "type": "timeseries"
+        },
+        {
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "align": "auto",
+                        "cellOptions": {
+                            "type": "auto"
+                        },
+                        "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "orange",
+                                "value": 20
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "CPU Usage %"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "percent"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Memory Usage %"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "percent"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Status"
+                        },
+                        "properties": [
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "type": "value",
+                                        "options": {
+                                            "0": {
+                                                "color": "orange",
+                                                "text": "⚠️ Oversized"
+                                            },
+                                            "1": {
+                                                "color": "green",
+                                                "text": "✅ Optimal"
+                                            },
+                                            "2": {
+                                                "color": "red",
+                                                "text": "🚨 Undersized"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 12,
+                "w": 24,
+                "x": 0,
+                "y": 8
+            },
+            "id": 2,
+            "interval": "1m",
+            "options": {
+                "cellHeight": "sm",
+                "footer": {
+                    "show": false
+                },
+                "showHeader": true
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "expr": "avg by (deployment) (\n  label_replace(\n    (rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[$__rate_interval])\n    / kube_pod_container_resource_requests{resource=\"cpu\"}) * 100\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "format": "table",
+                    "instant": true,
+                    "legendFormat": "CPU Usage %",
+                    "refId": "A"
+                },
+                {
+                    "expr": "avg by (deployment) (\n  label_replace(\n    (container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}\n    / kube_pod_container_resource_requests{resource=\"memory\"}) * 100\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "format": "table",
+                    "instant": true,
+                    "legendFormat": "Memory Usage %",
+                    "refId": "B"
+                },
+                {
+                    "expr": "avg by (deployment) (\n  label_replace(\n    kube_pod_container_resource_requests{resource=\"cpu\"} * 1000\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "format": "table",
+                    "instant": true,
+                    "legendFormat": "CPU Request (m)",
+                    "refId": "C"
+                }
+            ],
+            "title": "💰 Deployments Needing Attention",
+            "transformations": [
+                {
+                    "id": "merge"
+                },
+                {
+                    "id": "organize",
+                    "options": {
+                        "renameByName": {
+                            "Value #A": "CPU Usage %",
+                            "Value #B": "Memory Usage %",
+                            "Value #C": "CPU Request (m)"
+                        }
+                    }
+                },
+                {
+                    "id": "calculateField",
+                    "options": {
+                        "alias": "Status",
+                        "mode": "binary",
+                        "binary": {
+                            "left": "CPU Usage %",
+                            "operator": "<",
+                            "right": "20"
+                        }
+                    }
+                },
+                {
+                    "id": "calculateField",
+                    "options": {
+                        "alias": "Status",
+                        "mode": "binary",
+                        "binary": {
+                            "left": "CPU Usage %",
+                            "operator": ">",
+                            "right": "80"
+                        }
+                    }
+                },
+                {
+                    "id": "calculateField",
+                    "options": {
+                        "alias": "Status",
+                        "mode": "binary",
+                        "binary": {
+                            "left": "CPU Usage %",
+                            "operator": "between",
+                            "right": "20,80"
+                        }
+                    }
+                }
+            ],
+            "type": "table"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "aem10zgj3nj7kf"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 100
+                            },
+                            {
+                                "color": "orange",
+                                "value": 500
+                            }
+                        ]
+                    },
+                    "unit": "currencyUSD"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 0,
+                "y": 20
+            },
+            "id": 4,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "sum(\n  (\n    kube_pod_container_resource_requests{resource=\"cpu\"} * 0.024 * 720\n  )\n  * on(namespace, pod, container) group_left()\n    (\n      rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[$__rate_interval])\n        / on(namespace, pod, container)\n          kube_pod_container_resource_requests{resource=\"cpu\"}\n      < 0.2\n    )\n  * on(namespace, pod) group_left(created_by_kind)\n    kube_pod_info{created_by_kind=\"ReplicaSet\"}\n) or vector(0)",
+                    "instant": true,
+                    "legendFormat": "Monthly Savings",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "💸 Cost Savings Potential",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "aem10zgj3nj7kf"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "orange",
+                        "mode": "fixed"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 6,
+                "y": 20
+            },
+            "id": 5,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"}\n  ) * 100 < 20\n) or vector(0)",
+                    "instant": true,
+                    "legendFormat": "Oversized",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "⚠️ Oversized Count",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "aem10zgj3nj7kf"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "red",
+                        "mode": "fixed"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 12,
+                "y": 20
+            },
+            "id": 6,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"}\n  ) * 100 > 80\n) or vector(0)",
+                    "instant": true,
+                    "legendFormat": "Undersized",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "🚨 Undersized Count",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "aem10zgj3nj7kf"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "green",
+                        "mode": "fixed"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green"
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 18,
+                "y": 20
+            },
+            "id": 7,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.0.0",
+            "targets": [
+                {
+                    "editorMode": "code",
+                    "expr": "count(\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"} > 0\n  ) * 100 >= 20\n  and\n  (\n    rate(container_cpu_usage_seconds_total{container!=\"POD\", container!=\"\"}[$__rate_interval])\n    / on(namespace, pod, container)\n    kube_pod_container_resource_requests{resource=\"cpu\"} > 0\n  ) * 100 <= 80\n) or vector(0)",
+                    "instant": true,
+                    "legendFormat": "Optimal",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "✅ Optimal Count",
+            "type": "stat"
+        }
+    ],
+    "preload": false,
+    "refresh": "30s",
+    "schemaVersion": 41,
+    "tags": [
+        "kubernetes",
+        "cost-optimization"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Resource Optimization Dashboard",
+    "uid": "resource-optimization-minimal",
+    "version": 12
 }
