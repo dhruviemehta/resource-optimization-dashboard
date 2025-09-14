@@ -349,21 +349,21 @@
             "pluginVersion": "12.0.0",
             "targets": [
                 {
-                    "expr": "avg by (deployment) (\n  label_replace(\n    (rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[$__rate_interval])\n    / kube_pod_container_resource_requests{resource=\"cpu\"}) * 100\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "expr": "avg by (namespace, deployment) (\n  label_replace(\n    (\n      sum by (namespace,pod,container) (\n        rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m])\n      )\n      /\n      sum by (namespace,pod,container) (\n        kube_pod_container_resource_requests{resource=\"cpu\"}\n      )\n    ) * 100\n    *\n    on(namespace,pod) group_left(created_by_name)\n    max by (namespace,pod,created_by_name) (\n      kube_pod_info{created_by_kind=\"ReplicaSet\"}\n    ),\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)\n",
                     "format": "table",
                     "instant": true,
                     "legendFormat": "CPU Usage %",
                     "refId": "A"
                 },
                 {
-                    "expr": "avg by (deployment) (\n  label_replace(\n    (container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}\n    / kube_pod_container_resource_requests{resource=\"memory\"}) * 100\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "expr": "avg by (namespace, deployment) (\n  label_replace(\n    (\n      sum by (namespace,pod,container) (\n        container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}\n      )\n      /\n      sum by (namespace,pod,container) (\n        kube_pod_container_resource_requests{resource=\"memory\"}\n      )\n    ) * 100\n    *\n    on(namespace,pod) group_left(owner_name)\n    max by (namespace,pod,owner_name) (\n      kube_pod_owner{owner_kind=\"ReplicaSet\"}\n    ),\n    \"deployment\", \"$1\", \"owner_name\", \"(.+)-.+\"\n  )\n)",
                     "format": "table",
                     "instant": true,
                     "legendFormat": "Memory Usage %",
                     "refId": "B"
                 },
                 {
-                    "expr": "avg by (deployment) (\n  label_replace(\n    kube_pod_container_resource_requests{resource=\"cpu\"} * 1000\n    * on(pod) group_left() kube_pod_info{created_by_kind=\"ReplicaSet\"},\n    \"deployment\", \"$1\", \"created_by_name\", \"(.+)-.+\"\n  )\n)",
+                    "expr": "sum by (namespace, deployment) (\n  label_replace(\n    (\n      sum by (namespace,pod,container) (\n        kube_pod_container_resource_requests{resource=\"cpu\"}\n      ) * 1000\n    )\n    *\n    on(namespace,pod) group_left(owner_name)\n    max by (namespace,pod,owner_name) (\n      kube_pod_owner{owner_kind=\"ReplicaSet\"}\n    ),\n    \"deployment\", \"$1\", \"owner_name\", \"(.+)-.+\"\n  )\n)",
                     "format": "table",
                     "instant": true,
                     "legendFormat": "CPU Request (m)",
