@@ -23,7 +23,8 @@
     "panels": [
         {
             "datasource": {
-                "type": "prometheus"
+                "type": "prometheus",
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -151,7 +152,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "aem10zgj3nj7kf"
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -427,7 +428,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "aem10zgj3nj7kf"
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -496,7 +497,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "aem10zgj3nj7kf"
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -562,7 +563,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "aem10zgj3nj7kf"
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -628,7 +629,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "aem10zgj3nj7kf"
+                "uid": "${datasource}"
             },
             "fieldConfig": {
                 "defaults": {
@@ -700,7 +701,21 @@
         "cost-optimization"
     ],
     "templating": {
-        "list": []
+      "list": [
+        {
+          "current": {
+            "text": "Prometheus",
+            "value": "prometheus"
+          },
+          "label": "Data Source",
+          "name": "datasource",
+          "options": [],
+          "query": "prometheus",
+          "refresh": 1,
+          "regex": "",
+          "type": "datasource"
+        }
+      ]
     },
     "time": {
         "from": "now-1h",
